@@ -3,8 +3,6 @@ from google.appengine.ext import db
 from google.appengine.ext.db import polymodel
 from google.appengine.api import users
 
-CATEGORIES = [ 'soul', 'wine', 'beer', 'canned' ]
-
 
 class StoredItem(polymodel.PolyModel):
   """ Placeholder object for messing about."""
@@ -21,3 +19,10 @@ class Wine(StoredItem):
 
 class Jar(StoredItem):
   prepared = db.DateProperty(auto_now_add=True)
+
+TYPES = {
+    'Jar': Jar,
+    'Wine': Wine,
+    'Soul': FreshSoul
+}
+

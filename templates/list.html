@@ -3,7 +3,7 @@
   <h1>Current Contents:</h1>
   <ul>
     {% for item in list %}
-    <li><span class="badge badge-info">{{item.quantity}}</span> <a href="/show/thing">{{ item.name }}</a> </li>
+    <li><span class="badge badge-info">{{item.quantity}}</span> <a href="/edit/{{item.key()}}">{{ item.name }}</a> </li>
     {% endfor %}
   </ul>
 {%endblock%}

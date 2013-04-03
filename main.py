@@ -29,12 +29,25 @@ class MainHandler(webapp2.RequestHandler):
     #model.Jar(name='marmalade').put()
     #model.FreshSoul(name='ash').put()
     
-    things = model.StoredItem().all()
-    logging.debug(things)
+    things = model.StoredItem().all().order('-quantity')
     template = jinja_env.get_template('list.html')
     self.response.write(template.render({'list': things}))
+    return
+
+class ItemHandler(webapp2.RequestHandler):
+  """Handle the adding and displaying of items."""
+  def get(self):
+    (unused, op, t) =  self.request.path.split("/", 2)
+      
+    # TODO: sanity check the above type
+    q = model.StoredItem().get(t)
+    template = jinja_env.get_template("edit.html")
+    if q:
+      # we got a key name. editing.
+      self.response.write(template.render({'object': q}))
 
 
 app = webapp2.WSGIApplication([
-    ('/', MainHandler)
+    ('/', MainHandler),
+    ('/edit.*', ItemHandler),
 ], debug=True)
