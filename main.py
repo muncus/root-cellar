@@ -52,6 +52,20 @@ class ItemHandler(webapp2.RequestHandler):
       # we got a key name. editing.
       self.response.write(template.render({'object': q}))
 
+  def post(self):
+    form = FormClass(self.request.POST)
+    if form.validate():
+      logging.debug("we got some data")
+      (unused, op, key) =  self.request.path.split("/", 2)
+      item = model.StoredItem().get(key)
+      form.populate_obj(item)
+      item.put()
+      # show the item we just edited.
+      return self.get()
+    else:
+      logging.debug("form input did not validate!")
+      logging.debug(form.errors)
+
 
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
