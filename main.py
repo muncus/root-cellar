@@ -20,9 +20,14 @@ import webapp2
 import logging
 
 import model
+import wtforms
+from wtforms.ext.appengine.db import model_form
+
 
 jinja_env = jinja2.Environment(autoescape=True,
     loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates')))
+
+FormClass = model_form(model.StoredItem, wtforms.form.Form, exclude=["_class"])
 
 class MainHandler(webapp2.RequestHandler):
   def get(self):
@@ -41,6 +46,7 @@ class ItemHandler(webapp2.RequestHandler):
       
     # TODO: sanity check the above type
     q = model.StoredItem().get(t)
+    q = FormClass(None, q)
     template = jinja_env.get_template("edit.html")
     if q:
       # we got a key name. editing.
