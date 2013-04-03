@@ -41,27 +41,22 @@ class MainHandler(webapp2.RequestHandler):
 
 class ItemHandler(webapp2.RequestHandler):
   """Handle the adding and displaying of items."""
-  def get(self):
-    (unused, op, t) =  self.request.path.split("/", 2)
-      
-    # TODO: sanity check the above type
-    q = model.StoredItem().get(t)
+  def get(self, key):
+    q = model.StoredItem().get(key)
     q = FormClass(None, q)
     template = jinja_env.get_template("edit.html")
     if q:
       # we got a key name. editing.
       self.response.write(template.render({'object': q}))
 
-  def post(self):
+  def post(self, key):
     form = FormClass(self.request.POST)
     if form.validate():
-      logging.debug("we got some data")
-      (unused, op, key) =  self.request.path.split("/", 2)
       item = model.StoredItem().get(key)
       form.populate_obj(item)
       item.put()
       # show the item we just edited.
-      return self.get()
+      return self.get(key)
     else:
       logging.debug("form input did not validate!")
       logging.debug(form.errors)
@@ -69,5 +64,5 @@ class ItemHandler(webapp2.RequestHandler):
 
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
-    ('/edit.*', ItemHandler),
+    ('/edit/(.*)', ItemHandler),
 ], debug=True)
