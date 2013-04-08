@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Current Contents:</h1>
+  <h1>{{list_title}}</h1>
   <ul>
     {% for item in list %}
     <li><span class="badge badge-info">{{item.quantity}}</span> <a href="/edit/{{item.key()}}">{{ item.name }}</a> </li>

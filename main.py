@@ -23,11 +23,16 @@ import model
 import wtforms
 from wtforms.ext.appengine.db import model_form
 
+from google.appengine.api.datastore_errors import BadKeyError
+
 
 jinja_env = jinja2.Environment(autoescape=True,
     loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates')))
 
 FormClass = model_form(model.StoredItem, wtforms.form.Form, exclude=["_class"])
+FORMS = {}
+for cls in model.TYPES.keys():
+  FORMS[cls] = model_form(model.TYPES[cls], wtforms.form.Form, exclude=["_class"])
 
 class MainHandler(webapp2.RequestHandler):
   def get(self):
@@ -36,25 +41,67 @@ class MainHandler(webapp2.RequestHandler):
     
     things = model.StoredItem().all().order('-quantity')
     template = jinja_env.get_template('list.html')
-    self.response.write(template.render({'list': things}))
+    self.response.write(template.render({
+        'list_title': "Current Contents",
+        'list': things}))
     return
 
 class ItemHandler(webapp2.RequestHandler):
   """Handle the adding and displaying of items."""
-  def get(self, key):
-    q = model.StoredItem().get(key)
-    q = FormClass(None, q)
+
+  def showItemList(self):
+    """Display a list of available types. for use when adding an item."""
+    template = jinja_env.get_template("typelist.html")
+    v = {
+      'list_title': "Choose a type to add",
+      'list': model.TYPES}
+    self.response.write(template.render(v))
+    return
+
+  def editItem(self, itemform, title=None):
+    """Show an item's edit form."""
+    # XXX: switch to using item here?
+    if not title:
+      title = "Edit Item: %s" % itemform.name.data
+
     template = jinja_env.get_template("edit.html")
-    if q:
-      # we got a key name. editing.
-      self.response.write(template.render({'object': q}))
+    self.response.write(template.render({
+        'object': itemform,
+        'formtitle': title}))
+
+  def get(self, key=None):
+    if not key:
+      # adding a new item, present list of types.
+      self.showItemList()
+      return
+    if key in model.TYPES.keys():
+      logging.debug("Adding new item.")
+      # create a new object.
+      q = model.TYPES[key]()
+      q = FORMS[key](None, q)
+      title = "Add new item: %s" % key
+      self.editItem(q, title=title)
+    else:
+      logging.debug("editing item.")
+      q = model.StoredItem().get(key)
+      q = FormClass(None, q)
+      self.editItem(q)
 
   def post(self, key):
     form = FormClass(self.request.POST)
     if form.validate():
-      item = model.StoredItem().get(key)
-      form.populate_obj(item)
-      item.put()
+      item = None
+      try:
+        item = model.StoredItem().get(key)
+        form.populate_obj(item)
+        item.put()
+      except(BadKeyError):
+        # no such key, create new entry.
+        item = model.StoredItem()
+        form.populate_obj(item)
+        item.put()
+        self.redirect("/edit/%s" % item.key())
+        return
       # show the item we just edited.
       return self.get(key)
     else:
@@ -65,4 +112,6 @@ class ItemHandler(webapp2.RequestHandler):
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
     ('/edit/(.*)', ItemHandler),
+    ('/add', ItemHandler),
+    ('/add/(.*)', ItemHandler),
 ], debug=True)
